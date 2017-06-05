@@ -8,7 +8,9 @@ var minimist = require('minimist');
 
 // load plugins
 
-var	del = require('del'),
+var	amdOptimize = require("amd-optimize"),
+	concat = require('gulp-concat'),
+	del = require('del'),
 	imagemin = require('gulp-imagemin'),
 	minifyHtml = require('gulp-minify-html'),
 	minifyCss = require('gulp-minify-css'),
@@ -26,8 +28,8 @@ var options = minimist(process.argv.slice(2), {
 		env: 'dev'
 	}
 });
-var project = "golf_web";
-var projectDist=project+"_build";
+var project = "ybiji";
+var projectDist=project+"build";
 // get build options for the environment
 var buildOptions;
 if (options.env === 'prod') {
@@ -52,8 +54,18 @@ var runServer = function(open, callback) {
 	}, callback);
 };
 
+gulp.task('bundlejs', function () {
+  return amdOptimize.src("app/app",{
+    	
+    	configFile :project+"/app/config.js",
+    	baseUrl: project+'/'
+    })
+    .pipe(concat("bundle.js"))
+    .pipe(uglify())
+    .pipe(gulp.dest(projectDist+'/app'));
+});
 
-gulp.task("js", function() {
+gulp.task("uglifyjs", function() {
 	//JS路径操作
 	gulp.src(project+"/app/**/*.js")
 
@@ -61,6 +73,11 @@ gulp.task("js", function() {
 	.pipe(gulp.dest(projectDist+'/app'))
 
 })
+gulp.task("js", function(done) {
+	runSequence('bundlejs','uglifyjs',  done);
+
+})
+
 
 gulp.task("html", function() {
 	//JS路径操作
@@ -82,17 +99,22 @@ gulp.task("css", function() {
 
 })
 
-gulp.task('img', function() {
-	return gulp.src(project+'/img/*')
-		.pipe(imagemin({
-			progressive: true,
-			interlaced: true
-		}))
-		.pipe(gulp.dest(projectDist+'/img'));
-});
+// gulp.task('img', function() {
+// 	return gulp.src(project+'/img/*')
+// 		.pipe(imagemin({
+// 			progressive: true,
+// 			interlaced: true
+// 		}))
+// 		.pipe(gulp.dest(projectDist+'/img'));
+// });
 
 
 gulp.task('extras', function() {
+	gulp.src([project+'/img/**/*'], {
+			dot: true
+		})
+		.pipe(gulp.dest(projectDist+'/img'));
+
 	 gulp.src([project+'/plugins/**/*'], {
 			dot: true
 		})
@@ -138,7 +160,7 @@ gulp.task('watch', function() {
 
 
 gulp.task('build', function(done) {
-	runSequence('clean','html', 'img', 'css', 'js', 'extras',  done);
+	runSequence('clean','html', 'css', 'js', 'extras',  done);
 	
 });
 
